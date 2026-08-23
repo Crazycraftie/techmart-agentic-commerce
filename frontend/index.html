@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TechMart — AI Shopping Assistant</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:      #09090f;
+      --surf:    #111119;
+      --raised:  #171720;
+      --lifted:  #1f1f2e;
+      --border:  #28283e;
+      --border2: #35355a;
+      --acc:     #7c6cfc;
+      --acc2:    #b8affe;
+      --acc-g:   rgba(124,108,252,.12);
+      --acc-gb:  rgba(124,108,252,.07);
+      --t1:      #f0eeff;
+      --t2:      #aaaac8;
+      --t3:      #6a6a88;
+      --green:   #3ecf8e;
+      --red:     #f87171;
+      --gold:    #fbbf24;
+    }
+
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--t1);
+      display: flex;
+      flex-direction: column;
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    .hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 22px;
+      height: 54px;
+      background: var(--surf);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      position: relative;
+      z-index: 20;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      text-decoration: none;
+      user-select: none;
+    }
+
+    .logo-mark { width: 30px; height: 30px; flex-shrink: 0; }
+
+    .logo-word {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--t1);
+      line-height: 1;
+    }
+
+    .logo-word b { color: var(--acc2); font-weight: 800; }
+
+    .live-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(62,207,142,.07);
+      border: 1px solid rgba(62,207,142,.18);
+      border-radius: 20px;
+      padding: 5px 12px 5px 8px;
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--green);
+      letter-spacing: .1px;
+    }
+
+    .live-dot {
+      position: relative;
+      width: 7px;
+      height: 7px;
+      flex-shrink: 0;
+    }
+
+    .live-dot::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--green);
+      border-radius: 50%;
+    }
+
+    .live-dot::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      background: var(--green);
+      border-radius: 50%;
+      opacity: 0;
+      animation: ripple 2.2s ease-out infinite;
+    }
+
+    @keyframes ripple {
+      0%   { transform: scale(.6); opacity: .35; }
+      100% { transform: scale(2);  opacity: 0; }
+    }
+
+    /* ── Tabs ────────────────────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      align-items: center;
+      padding: 10px 22px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .tab-track {
+      display: flex;
+      gap: 3px;
+      background: var(--surf);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 3px;
+    }
+
+    .tab-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 15px;
+      border: none;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--t2);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .18s;
+      white-space: nowrap;
+      font-family: inherit;
+      line-height: 1;
+    }
+
+    .tab-btn.active {
+      background: var(--acc);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(124,108,252,.35);
+    }
+
+    .tab-btn:hover:not(.active) { background: var(--raised); color: var(--t1); }
+
+    /* ── Layout shell ─────────────────────────────────────── */
+    .main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+
+    .panel { display: none; flex: 1; overflow: hidden; }
+    .panel.active { display: flex; }
+
+    /* ── Chat column ──────────────────────────────────────── */
+    .chat-col { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    .msgs { flex: 1; overflow-y: auto; scroll-behavior: smooth; }
+    .msgs::-webkit-scrollbar { width: 4px; }
+    .msgs::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    .msgs-inner {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 28px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* ── Welcome ──────────────────────────────────────────── */
+    .welcome {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 52px 24px 36px;
+      position: relative;
+    }
+
+    .welcome-glow {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 400px;
+      height: 220px;
+      background: radial-gradient(ellipse at top, rgba(124,108,252,.13) 0%, transparent 68%);
+      pointer-events: none;
+    }
+
+    .bot-avatar {
+      position: relative;
+      width: 58px;
+      height: 58px;
+      border-radius: 18px;
+      background: linear-gradient(140deg, #7c6cfc, #a78bfa);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 28px rgba(124,108,252,.28), 0 0 0 1px rgba(124,108,252,.35);
+    }
+
+    .welcome h1 {
+      font-size: 25px;
+      font-weight: 800;
+      letter-spacing: -.6px;
+      color: var(--t1);
+      margin-bottom: 8px;
+      text-wrap: balance;
+    }
+
+    .welcome h1 em {
+      font-style: normal;
+      background: linear-gradient(110deg, var(--acc2) 20%, #c4b5fd 80%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .welcome p {
+      color: var(--t2);
+      font-size: 15px;
+      max-width: 340px;
+      margin-bottom: 28px;
+      line-height: 1.65;
+    }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 500px; }
+
+    .chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--lifted);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      padding: 8px 16px 8px 12px;
+      font-size: 13.5px;
+      color: var(--t1);
+      cursor: pointer;
+      transition: all .18s;
+      font-family: inherit;
+      font-weight: 500;
+    }
+
+    .chip:hover {
+      background: var(--lifted);
+      border-color: var(--acc);
+      color: #fff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(124,108,252,.18);
+    }
+
+    /* ── Messages ─────────────────────────────────────────── */
+    .msg { display: flex; gap: 11px; animation: msgIn .2s ease; }
+
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(7px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .msg.user { flex-direction: row-reverse; }
+
+    .msg-av {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      margin-top: 2px;
+    }
+
+    .msg-av.bot { background: linear-gradient(140deg, var(--acc), #a78bfa); box-shadow: 0 2px 8px rgba(124,108,252,.28); }
+    .msg-av.user { background: var(--lifted); border: 1px solid var(--border2); }
+
+    .msg-col { display: flex; flex-direction: column; gap: 8px; max-width: 74%; min-width: 0; }
+    .msg.user .msg-col { align-items: flex-end; }
+
+    .bubble { padding: 12px 16px; border-radius: 15px; font-size: 15px; line-height: 1.65; word-break: break-word; }
+
+    .msg.bot .bubble {
+      background: var(--raised);
+      border: 1px solid var(--border);
+      border-top-left-radius: 4px;
+    }
+
+    .msg.user .bubble {
+      background: linear-gradient(140deg, var(--acc), #8a7cfd);
+      color: #fff;
+      border-top-right-radius: 4px;
+      box-shadow: 0 2px 14px rgba(124,108,252,.24);
+    }
+
+    .bubble p { margin-bottom: 6px; }
+    .bubble p:last-child { margin-bottom: 0; }
+    .bubble ul, .bubble ol { padding-left: 18px; margin: 6px 0; }
+    .bubble li { margin-bottom: 3px; }
+    .bubble strong { font-weight: 600; }
+
+    /* ── Typing ───────────────────────────────────────────── */
+    .typing {
+      display: flex;
+      gap: 4px;
+      padding: 13px 15px;
+      background: var(--raised);
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      border-top-left-radius: 4px;
+      width: fit-content;
+    }
+
+    .typing span { width: 6px; height: 6px; background: var(--acc); border-radius: 50%; animation: tdot 1.2s infinite ease; }
+    .typing span:nth-child(2) { animation-delay: .18s; }
+    .typing span:nth-child(3) { animation-delay: .36s; }
+
+    @keyframes tdot {
+      0%, 80%, 100% { transform: translateY(0); opacity: .45; }
+      40%            { transform: translateY(-5px); opacity: 1; }
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 13px;
+      background: var(--acc2);
+      margin-left: 2px;
+      vertical-align: middle;
+      border-radius: 1px;
+      animation: blink .75s ease infinite;
+    }
+
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    /* ── Product cards ────────────────────────────────────── */
+    .pcards { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .pcard {
+      background: var(--raised);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      width: 200px;
+      transition: all .2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pcard::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--acc), #a78bfa);
+      opacity: 0;
+      transition: opacity .2s;
+    }
+
+    .pcard:hover { border-color: rgba(124,108,252,.5); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124,108,252,.12); }
+    .pcard:hover::after { opacity: 1; }
+
+    .pcard-icon { font-size: 24px; margin-bottom: 10px; display: block; }
+    .pcard-name { font-size: 13px; font-weight: 600; color: var(--t1); margin-bottom: 5px; line-height: 1.3; }
+    .pcard-pricing { display: flex; align-items: baseline; gap: 5px; margin-bottom: 5px; }
+    .pcard-price { font-size: 16px; font-weight: 700; color: var(--acc2); font-variant-numeric: tabular-nums; }
+    .pcard-orig  { font-size: 12px; color: var(--t2); text-decoration: line-through; font-variant-numeric: tabular-nums; }
+    .pcard-spec  { font-size: 12px; color: var(--t2); line-height: 1.4; }
+
+    .pcard-badge {
+      display: inline-flex;
+      align-items: center;
+      margin-top: 9px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .3px;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(62,207,142,.1);
+      color: var(--green);
+    }
+
+    .pcard-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .pcard-btn-info {
+      flex: 1;
+      padding: 6px 0;
+      background: var(--lifted);
+      border: 1px solid var(--border2);
+      border-radius: 7px;
+      color: var(--t2);
+      font-size: 11.5px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all .18s;
+    }
+
+    .pcard-btn-info:hover { border-color: var(--border2); color: var(--t1); background: var(--border); }
+
+    .pcard-btn-buy {
+      flex: 1;
+      padding: 6px 0;
+      background: var(--acc);
+      border: none;
+      border-radius: 7px;
+      color: #fff;
+      font-size: 11.5px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all .18s;
+      box-shadow: 0 2px 8px rgba(124,108,252,.3);
+    }
+
+    .pcard-btn-buy:hover { background: #8a7cfd; box-shadow: 0 4px 14px rgba(124,108,252,.4); transform: translateY(-1px); }
+
+    /* ── Payment link box ─────────────────────────────────── */
+    .pay-box {
+      background: var(--acc-gb);
+      border: 1px solid rgba(124,108,252,.18);
+      border-radius: 9px;
+      padding: 12px 14px;
+      margin-top: 6px;
+    }
+
+    .pay-box-lbl { font-size: 10px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--t3); margin-bottom: 6px; }
+    .pay-box a { color: var(--acc2); font-weight: 500; word-break: break-all; font-size: 13px; }
+
+    /* ── Input bar ────────────────────────────────────────── */
+    .input-bar {
+      padding: 14px 22px 20px;
+      background: linear-gradient(to top, var(--bg) 65%, transparent);
+      flex-shrink: 0;
+    }
+
+    .input-inner { max-width: 720px; margin: 0 auto; display: flex; gap: 10px; align-items: flex-end; }
+
+    .input-wrap {
+      flex: 1;
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      background: var(--surf);
+      border: 1px solid var(--border2);
+      border-radius: 14px;
+      padding: 10px 10px 10px 16px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .input-wrap:focus-within { border-color: var(--acc); box-shadow: 0 0 0 3px rgba(124,108,252,.08); }
+
+    #userInput {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--t1);
+      font-size: 14px;
+      font-family: inherit;
+      line-height: 1.5;
+      resize: none;
+      max-height: 110px;
+    }
+
+    #userInput::placeholder { color: var(--t2); }
+
+    .send-btn {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      background: var(--acc);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .18s;
+      box-shadow: 0 2px 10px rgba(124,108,252,.3);
+    }
+
+    .send-btn:hover { background: #8a7cfd; transform: scale(1.05); }
+    .send-btn:active { transform: scale(.97); }
+    .send-btn:disabled { opacity: .33; cursor: not-allowed; transform: none; box-shadow: none; }
+    .send-btn svg { width: 15px; height: 15px; fill: #fff; }
+
+    /* ── Audit rail ───────────────────────────────────────── */
+    .audit-rail {
+      width: 262px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--surf);
+      border-left: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .rail-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 16px 13px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .rail-hdr-left { display: flex; align-items: center; gap: 8px; }
+
+    .rail-hdr-icon {
+      width: 26px;
+      height: 26px;
+      background: var(--raised);
+      border: 1px solid var(--border2);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .rail-hdr-label { font-size: 10.5px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: var(--t2); }
+
+    .rail-count { background: var(--acc); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; font-variant-numeric: tabular-nums; }
+
+    .audit-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 5px; }
+    .audit-list::-webkit-scrollbar { width: 3px; }
+    .audit-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    .audit-empty { text-align: center; padding: 38px 16px; color: var(--t2); font-size: 13px; line-height: 1.8; }
+
+    .ae {
+      background: var(--raised);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--border2);
+      border-radius: 8px;
+      padding: 9px 11px;
+    }
+
+    .ae.success { border-left-color: var(--green); }
+    .ae.error   { border-left-color: var(--red); }
+    .ae.invalid { border-left-color: var(--gold); }
+
+    .ae-time   { font-size: 11px; color: var(--t2); margin-bottom: 3px; font-variant-numeric: tabular-nums; }
+    .ae-name   { font-size: 13px; font-weight: 600; color: var(--t1); margin-bottom: 3px; }
+    .ae-detail { font-size: 11px; color: var(--t2); margin-bottom: 5px; word-break: break-all; line-height: 1.4; }
+
+    .ae-pill {
+      display: inline-flex;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .4px;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 5px;
+    }
+
+    .ae-pill.success { background: rgba(62,207,142,.1);  color: var(--green); }
+    .ae-pill.error   { background: rgba(248,113,113,.1); color: var(--red); }
+    .ae-pill.invalid { background: rgba(251,191,36,.1);  color: var(--gold); }
+
+    /* ── A2A panel ────────────────────────────────────────── */
+    .a2a-outer { flex: 1; display: flex; overflow: hidden; }
+
+    .a2a-main { flex: 1; overflow-y: auto; padding: 28px 24px; }
+    .a2a-main::-webkit-scrollbar { width: 4px; }
+    .a2a-main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .a2a-content { max-width: 600px; margin: 0 auto; }
+
+    .a2a-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--acc2);
+      background: var(--acc-g);
+      border: 1px solid rgba(124,108,252,.2);
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 14px;
+    }
+
+    .a2a-title { font-size: 21px; font-weight: 800; letter-spacing: -.4px; color: var(--t1); margin-bottom: 8px; }
+
+    .a2a-desc { font-size: 15px; color: var(--t2); line-height: 1.65; margin-bottom: 24px; max-width: 480px; }
+
+    .form-card {
+      background: var(--surf);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 14px;
+    }
+
+    .form-field { margin-bottom: 14px; }
+    .form-field:last-child { margin-bottom: 0; }
+
+    .form-lbl { display: block; font-size: 11.5px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--t2); margin-bottom: 7px; }
+
+    .form-inp {
+      width: 100%;
+      background: var(--raised);
+      border: 1px solid var(--border2);
+      border-radius: 9px;
+      padding: 10px 14px;
+      color: var(--t1);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .18s, box-shadow .18s;
+    }
+
+    .form-inp:focus { border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-gb); }
+
+    .run-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      background: var(--acc);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all .18s;
+      box-shadow: 0 4px 18px rgba(124,108,252,.3);
+      letter-spacing: -.1px;
+    }
+
+    .run-btn:hover { background: #8a7cfd; box-shadow: 0 6px 22px rgba(124,108,252,.4); }
+    .run-btn:active { transform: scale(.99); }
+    .run-btn:disabled { opacity: .38; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+
+    .preset-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 14px;
+      background: var(--lifted);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--t1);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .18s;
+    }
+
+    .preset-btn:hover { border-color: var(--acc); color: #fff; box-shadow: 0 2px 10px rgba(124,108,252,.15); }
+
+    /* ── Event feed ───────────────────────────────────────── */
+    .feed { display: flex; flex-direction: column; gap: 8px; }
+
+    .feed-empty { text-align: center; border: 1px dashed var(--border2); border-radius: 12px; padding: 48px 24px; color: var(--t2); font-size: 14px; line-height: 1.8; }
+
+    .fevent { display: flex; gap: 11px; align-items: flex-start; animation: fIn .22s ease; }
+
+    @keyframes fIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .ficon {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+
+    .ficon.thinking    { background: rgba(128,128,160,.1);  border: 1px solid rgba(128,128,160,.18); }
+    .ficon.tool_call   { background: rgba(124,108,252,.12); border: 1px solid rgba(124,108,252,.22); }
+    .ficon.tool_result { background: rgba(124,108,252,.07); border: 1px solid rgba(124,108,252,.14); }
+    .ficon.decision    { background: rgba(251,191,36,.09);  border: 1px solid rgba(251,191,36,.2); }
+    .ficon.purchase    { background: rgba(62,207,142,.09);  border: 1px solid rgba(62,207,142,.22); }
+    .ficon.error       { background: rgba(248,113,113,.09); border: 1px solid rgba(248,113,113,.2); }
+
+    .fbody { flex: 1; min-width: 0; }
+    .ftype { font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--t2); margin-bottom: 3px; }
+    .ftext { font-size: 14px; color: var(--t1); line-height: 1.55; }
+
+    .fprod-row { display: flex; gap: 7px; margin-top: 8px; flex-wrap: wrap; }
+
+    .fpc { background: var(--raised); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; }
+    .fpc-name  { font-weight: 600; color: var(--t1); }
+    .fpc-price { color: var(--acc2); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .purchase-card {
+      background: linear-gradient(135deg, rgba(62,207,142,.06), rgba(124,108,252,.06));
+      border: 1px solid rgba(62,207,142,.2);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 8px;
+    }
+
+    .pc-label  { font-size: 10px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: var(--green); margin-bottom: 8px; }
+    .pc-amount { font-size: 28px; font-weight: 800; letter-spacing: -.6px; color: var(--t1); font-variant-numeric: tabular-nums; margin-bottom: 3px; }
+    .pc-prod   { font-size: 12px; color: var(--t2); margin-bottom: 10px; }
+    .pc-link   { display: inline-flex; align-items: center; gap: 5px; color: var(--acc2); font-size: 12.5px; font-weight: 500; word-break: break-all; }
+
+    /* ── Stats rail ───────────────────────────────────────── */
+    .stats-rail {
+      width: 210px;
+      flex-shrink: 0;
+      background: var(--surf);
+      border-left: 1px solid var(--border);
+      padding: 20px 16px;
+      overflow-y: auto;
+    }
+
+    .stats-title { font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--t2); margin-bottom: 16px; }
+
+    .stat { padding: 11px 0; border-bottom: 1px solid var(--border); }
+    .stat:last-child { border-bottom: none; }
+    .stat-lbl { font-size: 12px; color: var(--t2); margin-bottom: 3px; }
+    .stat-val { font-size: 16px; font-weight: 700; color: var(--t1); font-variant-numeric: tabular-nums; }
+    .stat-val.g { color: var(--green); }
+    .stat-val.a { color: var(--acc2); }
+
+    @media (max-width: 1024px) { .audit-rail, .stats-rail { display: none; } }
+    @media (max-width: 640px) {
+      .hdr, .tab-bar, .input-bar { padding-left: 14px; padding-right: 14px; }
+      .msgs-inner { padding: 20px 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header class="hdr">
+  <a class="logo" href="#">
+    <svg class="logo-mark" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="5" y="5" width="20" height="20" rx="5" fill="url(#lmg)"/>
+      <line x1="1.5" y1="11" x2="5" y2="11" stroke="#7c6cfc" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="1.5" y1="19" x2="5" y2="19" stroke="#a78bfa" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="25" y1="11" x2="28.5" y2="11" stroke="#7c6cfc" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="25" y1="19" x2="28.5" y2="19" stroke="#a78bfa" stroke-width="1.4" stroke-linecap="round"/>
+      <circle cx="12" cy="12.5" r="1.6" fill="white" opacity=".65"/>
+      <circle cx="18" cy="12.5" r="1.6" fill="white" opacity=".65"/>
+      <circle cx="15" cy="18.5" r="1.7" fill="white" opacity=".92"/>
+      <line x1="12" y1="14.1" x2="15" y2="16.9" stroke="white" stroke-width="1" opacity=".3"/>
+      <line x1="18" y1="14.1" x2="15" y2="16.9" stroke="white" stroke-width="1" opacity=".3"/>
+      <defs>
+        <linearGradient id="lmg" x1="0" y1="0" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#7c6cfc"/>
+          <stop offset="1" stop-color="#a78bfa"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <span class="logo-word">Tech<b>Mart</b></span>
+  </a>
+  <div class="live-pill">
+    <span class="live-dot"></span>
+    AI Agent Active
+  </div>
+</header>
+
+<!-- ── Tabs ── -->
+<nav class="tab-bar">
+  <div class="tab-track">
+    <button class="tab-btn active" onclick="switchTab('human')">💬 Human Buyer</button>
+    <button class="tab-btn" onclick="switchTab('a2a')">🤖 AI Buyer Demo</button>
+  </div>
+</nav>
+
+<!-- ── Main ── -->
+<div class="main">
+
+  <!-- TAB: Human Buyer -->
+  <div class="panel active" id="tab-human">
+    <div class="chat-col">
+      <div class="msgs" id="msgs">
+        <div class="msgs-inner" id="msgsInner">
+          <div class="welcome" id="welcome">
+            <div class="welcome-glow"></div>
+            <div class="bot-avatar">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="8" width="18" height="11" rx="3" fill="white" opacity=".9"/>
+                <circle cx="9" cy="13.5" r="1.5" fill="#7c6cfc"/>
+                <circle cx="15" cy="13.5" r="1.5" fill="#a78bfa"/>
+                <rect x="9" y="5" width="6" height="4" rx="2" fill="white" opacity=".72"/>
+                <line x1="5.5" y1="8" x2="3.5" y2="6.2" stroke="white" stroke-width="1.4" stroke-linecap="round" opacity=".5"/>
+                <line x1="18.5" y1="8" x2="20.5" y2="6.2" stroke="white" stroke-width="1.4" stroke-linecap="round" opacity=".5"/>
+              </svg>
+            </div>
+            <h1>Hi, I'm <em>ShopBot</em></h1>
+            <p>Your AI shopping assistant for TechMart. Ask me about laptops, accessories, and more.</p>
+            <div class="chips">
+              <button class="chip" onclick="sendChip(this)">💻 Laptops under ₹50,000</button>
+              <button class="chip" onclick="sendChip(this)">🎓 Best laptop for students</button>
+              <button class="chip" onclick="sendChip(this)">🖥️ Show me all monitors</button>
+              <button class="chip" onclick="sendChip(this)">⌨️ Wireless keyboard</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-bar">
+        <div class="input-inner">
+          <div class="input-wrap">
+            <textarea id="userInput" placeholder="Ask me about products…" rows="1"></textarea>
+          </div>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <aside class="audit-rail">
+      <div class="rail-hdr">
+        <div class="rail-hdr-left">
+          <div class="rail-hdr-icon">🔍</div>
+          <span class="rail-hdr-label">Audit Trail</span>
+        </div>
+        <span class="rail-count" id="auditCount">0</span>
+      </div>
+      <div class="audit-list" id="auditList">
+        <div class="audit-empty">Agent actions<br>will appear here</div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- TAB: A2A Demo -->
+  <div class="panel" id="tab-a2a">
+    <div class="a2a-outer">
+      <div class="a2a-main">
+        <div class="a2a-content">
+          <div class="a2a-eyebrow">⚡ Agent-to-Agent Commerce</div>
+          <h2 class="a2a-title">Autonomous AI Buyer</h2>
+          <p class="a2a-desc">Give the AI a shopping goal and watch it autonomously discover the catalog, evaluate products, make a purchase decision, and complete a real Razorpay transaction — zero human involvement.</p>
+
+          <div class="form-card">
+            <div class="form-field">
+              <label class="form-lbl" for="a2aGoal">Shopping Goal</label>
+              <input class="form-inp" id="a2aGoal" type="text" value="buy the best laptop for a computer science student" />
+            </div>
+            <div class="form-field">
+              <label class="form-lbl" for="a2aBudget">Budget (₹)</label>
+              <input class="form-inp" id="a2aBudget" type="number" value="50000" />
+            </div>
+            <button class="run-btn" id="runBtn" onclick="runA2A()">▶ Run Autonomous Agent</button>
+          </div>
+
+          <div class="presets">
+            <button class="preset-btn" onclick="setPreset('buy the best value laptop for a CS student', 50000)">💻 Student Laptop</button>
+            <button class="preset-btn" onclick="setPreset('buy a premium laptop for professional video editing', 100000)">🎬 Pro Laptop</button>
+            <button class="preset-btn" onclick="setPreset('buy a wireless keyboard for productivity', 15000)">⌨️ Keyboard</button>
+          </div>
+
+          <div class="feed" id="a2aFeed">
+            <div class="feed-empty">Run the agent to see it shop autonomously →</div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="stats-rail">
+        <div class="stats-title">Transaction Stats</div>
+        <div class="stat"><div class="stat-lbl">Status</div><div class="stat-val" id="sStatus">Idle</div></div>
+        <div class="stat"><div class="stat-lbl">Tools Called</div><div class="stat-val a" id="sTools">0</div></div>
+        <div class="stat"><div class="stat-lbl">Products Evaluated</div><div class="stat-val" id="sProds">0</div></div>
+        <div class="stat"><div class="stat-lbl">Decision</div><div class="stat-val" id="sDecision">—</div></div>
+        <div class="stat"><div class="stat-lbl">Amount</div><div class="stat-val g" id="sAmount">—</div></div>
+        <div class="stat"><div class="stat-lbl">Payment</div><div class="stat-val g" id="sPayment">—</div></div>
+      </aside>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const API = 'http://localhost:8000';
+  let sessionId = null;
+  let busy = false;
+
+  const msgsInner  = document.getElementById('msgsInner');
+  const msgsEl     = document.getElementById('msgs');
+  const inputEl    = document.getElementById('userInput');
+  const sendBtn    = document.getElementById('sendBtn');
+  const auditList  = document.getElementById('auditList');
+  const auditCount = document.getElementById('auditCount');
+
+  /* ── Tabs ──────────────────────────────────────── */
+  function switchTab(id) {
+    document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['human','a2a'][i] === id));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-'+id).classList.add('active');
+  }
+
+  /* ── Input ─────────────────────────────────────── */
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 110) + 'px';
+  });
+  inputEl.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+
+  function sendChip(el) { inputEl.value = el.textContent.replace(/^.\s/, '').trim(); sendMessage(); }
+
+  /* ── Streaming chat ─────────────────────────────── */
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text || busy) return;
+    const w = document.getElementById('welcome');
+    if (w) w.remove();
+    appendMsg(text, 'user');
+    inputEl.value = ''; inputEl.style.height = 'auto';
+    setLoading(true);
+    const botEl = appendMsg('', 'bot');
+    const bubbleEl = botEl.querySelector('.bubble');
+    bubbleEl.innerHTML = '<span class="cursor"></span>';
+
+    try {
+      const res = await fetch(`${API}/chat/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, message: text }),
+      });
+      if (!res.ok) throw new Error('Server error ' + res.status);
+
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '', acc = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split('\n'); buf = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const ev = JSON.parse(line.slice(6));
+            if (ev.type === 'chunk') {
+              acc += ev.text;
+              bubbleEl.innerHTML = fmt(acc) + '<span class="cursor"></span>';
+              scrollBottom();
+            } else if (ev.type === 'done') {
+              sessionId = ev.session_id;
+              bubbleEl.innerHTML = fmt(acc);
+              if (ev.products && ev.products.length) botEl.querySelector('.msg-col').appendChild(renderCards(ev.products));
+              updateAudit(ev.audit_trail);
+              scrollBottom();
+            } else if (ev.type === 'error') {
+              bubbleEl.innerHTML = '<em style="color:var(--red)">Something went wrong. Please try again.</em>';
+            }
+          } catch(_) {}
+        }
+      }
+    } catch(err) {
+      bubbleEl.innerHTML = '<em style="color:var(--red)">Connection error. Is the server running?</em>';
+    } finally { setLoading(false); }
+  }
+
+  function appendMsg(text, role) {
+    const el = document.createElement('div');
+    el.className = `msg ${role}`;
+    const av = document.createElement('div');
+    av.className = `msg-av ${role}`;
+    av.textContent = role === 'bot' ? '🤖' : '👤';
+    const col = document.createElement('div');
+    col.className = 'msg-col';
+    const bub = document.createElement('div');
+    bub.className = 'bubble';
+    if (text) bub.innerHTML = fmt(text);
+    col.appendChild(bub);
+    el.appendChild(av); el.appendChild(col);
+    msgsInner.appendChild(el);
+    scrollBottom();
+    return el;
+  }
+
+  function renderCards(products) {
+    const wrap = document.createElement('div');
+    wrap.className = 'pcards';
+    const icons = { laptop:'💻', monitor:'🖥️', accessory:'⌨️' };
+    products.forEach(p => {
+      const c = document.createElement('div');
+      c.className = 'pcard';
+      const disc = Math.round((p.original_price - p.price) / p.original_price * 100);
+      const specs = Object.values(p.specs || {}).slice(0,2).join(' · ');
+      const inStock = p.stock > 0;
+      c.innerHTML = `
+        <span class="pcard-icon">${icons[p.category] || '📦'}</span>
+        <div class="pcard-name">${esc(p.name)}</div>
+        <div class="pcard-pricing">
+          <span class="pcard-price">₹${p.price.toLocaleString('en-IN')}</span>
+          ${disc > 0 ? `<span class="pcard-orig">₹${p.original_price.toLocaleString('en-IN')}</span>` : ''}
+        </div>
+        <div class="pcard-spec">${esc(specs)}</div>
+        <span class="pcard-badge">${inStock ? `${p.stock} in stock` : 'Out of stock'}</span>
+        <div class="pcard-actions">
+          <button class="pcard-btn-info">Details</button>
+          <button class="pcard-btn-buy" ${!inStock ? 'disabled style="opacity:.4;cursor:not-allowed"' : ''}>Place Order</button>
+        </div>`;
+      c.querySelector('.pcard-btn-info').onclick = (e) => {
+        e.stopPropagation();
+        inputEl.value = `Tell me more about ${p.name}`;
+        sendMessage();
+      };
+      c.querySelector('.pcard-btn-buy').onclick = (e) => {
+        e.stopPropagation();
+        if (!inStock) return;
+        buyProduct(p.name, p.price);
+      };
+      wrap.appendChild(c);
+    });
+    return wrap;
+  }
+
+  function buyProduct(name, price) {
+    inputEl.value = `I want to buy the ${name} for ₹${price.toLocaleString('en-IN')}. Please create a payment link.`;
+    sendMessage();
+  }
+
+  /* ── Formatter ─────────────────────────────────── */
+  function fmt(raw) {
+    let s = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    s = s.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    const urls = [];
+    s = s.replace(/\[([^\]]+)\]\((https:\/\/rzp\.io\/[^)]+)\)/g, (_,_t,u) => { urls.push(u); return '\nRZPP'+(urls.length-1)+'\n'; });
+    s = s.replace(/(https:\/\/rzp\.io\/[^\s<"]+)/g, u => { if(!urls.includes(u)) urls.push(u); return '\nRZPP'+urls.indexOf(u)+'\n'; });
+    const lines = s.split('\n');
+    const out = []; let inUl=false, inOl=false;
+    for (const line of lines) {
+      const t = line.trim();
+      const ul = t.match(/^[-*]\s+(.+)/);
+      const ol = t.match(/^\d+\.\s+(.+)/);
+      const isPay = /^RZPP\d+$/.test(t);
+      if (ul) { if(!inUl){out.push('<ul>');inUl=true;} if(inOl){out.push('</ol>');inOl=false;} out.push(`<li>${ul[1]}</li>`); }
+      else if (ol) { if(!inOl){out.push('<ol>');inOl=true;} if(inUl){out.push('</ul>');inUl=false;} out.push(`<li>${ol[1]}</li>`); }
+      else { if(inUl){out.push('</ul>');inUl=false;} if(inOl){out.push('</ol>');inOl=false;} if(!t){}else if(isPay)out.push(t);else out.push(`<p>${t}</p>`); }
+    }
+    if(inUl)out.push('</ul>'); if(inOl)out.push('</ol>');
+    let res = out.join('');
+    urls.forEach((u,i) => { res = res.split('RZPP'+i).join(`<div class="pay-box"><div class="pay-box-lbl">💳 Payment Link — Test Mode</div><a href="${u}" target="_blank">${u}</a></div>`); });
+    return res;
+  }
+
+  /* ── Audit ─────────────────────────────────────── */
+  function updateAudit(trail) {
+    if (!trail || !trail.length) return;
+    auditCount.textContent = trail.length;
+    auditList.innerHTML = '';
+    const aFmt = {
+      search_products:'🔍 Search Products', get_product_details:'📦 Product Details',
+      get_upsell_recommendations:'💡 Upsell Check', apply_coupon:'🏷️ Apply Coupon',
+      create_payment_link:'💳 Create Payment Link', check_payment_status:'✅ Check Payment',
+    };
+    [...trail].reverse().forEach(e => {
+      const el = document.createElement('div');
+      el.className = `ae ${e.status || 'success'}`;
+      const detail = Object.entries(e.details || {}).map(([k,v])=>`${k}: ${typeof v==='object'?JSON.stringify(v):v}`).join(' · ').substring(0,90);
+      el.innerHTML = `
+        <div class="ae-time">${e.timestamp}</div>
+        <div class="ae-name">${aFmt[e.action] || e.action}</div>
+        ${detail ? `<div class="ae-detail">${esc(detail)}</div>` : ''}
+        <span class="ae-pill ${e.status||'success'}">${(e.status||'success').toUpperCase()}</span>`;
+      auditList.appendChild(el);
+    });
+  }
+
+  /* ── A2A Demo ──────────────────────────────────── */
+  function setPreset(goal, budget) {
+    document.getElementById('a2aGoal').value = goal;
+    document.getElementById('a2aBudget').value = budget;
+  }
+
+  async function runA2A() {
+    const goal   = document.getElementById('a2aGoal').value.trim();
+    const budget = parseInt(document.getElementById('a2aBudget').value) || null;
+    if (!goal) return;
+    const feed = document.getElementById('a2aFeed');
+    const runBtn = document.getElementById('runBtn');
+    feed.innerHTML = '';
+    runBtn.disabled = true; runBtn.textContent = '⏳ Agent Running…';
+    document.getElementById('sStatus').textContent   = 'Running';
+    document.getElementById('sTools').textContent    = '0';
+    document.getElementById('sProds').textContent    = '0';
+    document.getElementById('sDecision').textContent = '—';
+    document.getElementById('sAmount').textContent   = '—';
+    document.getElementById('sPayment').textContent  = '—';
+    addFeed(feed, { type:'thinking', message:`Goal: "${goal}"${budget?` · Budget: ₹${budget.toLocaleString('en-IN')}`:''}`});
+    try {
+      const res = await fetch(`${API}/agent/run`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ goal, budget }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Agent failed');
+      let tc=0, pc=0;
+      for (const ev of data.events) {
+        await new Promise(r => setTimeout(r, 550));
+        addFeed(feed, ev);
+        if (ev.type==='tool_call')   { tc++; document.getElementById('sTools').textContent = tc; }
+        if (ev.type==='tool_result'&&ev.count) { pc+=ev.count; document.getElementById('sProds').textContent=pc; }
+        if (ev.type==='decision')    document.getElementById('sDecision').textContent = (ev.product?.name||'—').substring(0,18);
+        if (ev.type==='purchase') {
+          document.getElementById('sAmount').textContent  = `₹${(ev.amount||0).toLocaleString('en-IN')}`;
+          document.getElementById('sPayment').textContent = '✅ Created';
+          document.getElementById('sStatus').textContent  = 'Complete';
+        }
+      }
+    } catch(err) {
+      addFeed(feed, { type:'error', message: err.message });
+      document.getElementById('sStatus').textContent = 'Error';
+    } finally {
+      runBtn.disabled = false; runBtn.textContent = '▶ Run Autonomous Agent';
+    }
+  }
+
+  function addFeed(feed, ev) {
+    const empty = feed.querySelector('.feed-empty');
+    if (empty) empty.remove();
+    const icons  = { thinking:'💭', tool_call:'🔧', tool_result:'📋', decision:'⚡', purchase:'✅', error:'❌' };
+    const labels = { thinking:'Thinking', tool_call:'Tool Called', tool_result:'Result', decision:'Decision Made', purchase:'Purchase Complete', error:'Error' };
+    const el = document.createElement('div');
+    el.className = 'fevent';
+    el.innerHTML = `
+      <div class="ficon ${ev.type}">${icons[ev.type]||'•'}</div>
+      <div class="fbody">
+        <div class="ftype">${labels[ev.type]||ev.type}</div>
+        <div class="ftext">${esc(ev.message||ev.summary||ev.text||'')}</div>
+      </div>`;
+    if (ev.type==='tool_result'&&ev.products&&ev.products.length) {
+      const body = el.querySelector('.fbody');
+      const row = document.createElement('div'); row.className = 'fprod-row';
+      ev.products.forEach(p => {
+        const c = document.createElement('div'); c.className = 'fpc';
+        c.innerHTML = `<div class="fpc-name">${esc(p.name||'')}</div><div class="fpc-price">₹${(p.price_inr||p.price||0).toLocaleString('en-IN')}</div>`;
+        row.appendChild(c);
+      });
+      body.appendChild(row);
+    }
+    if (ev.type==='purchase'&&ev.payment_url) {
+      const body = el.querySelector('.fbody');
+      const card = document.createElement('div'); card.className = 'purchase-card';
+      card.innerHTML = `
+        <div class="pc-label">🎉 Transaction Complete</div>
+        <div class="pc-amount">₹${(ev.amount||0).toLocaleString('en-IN')}</div>
+        <div class="pc-prod">${esc(ev.product_name||'')}</div>
+        <a class="pc-link" href="${ev.payment_url}" target="_blank">🔗 ${ev.payment_url}</a>`;
+      body.appendChild(card);
+    }
+    feed.appendChild(el);
+    feed.scrollTop = feed.scrollHeight;
+  }
+
+  /* ── Helpers ───────────────────────────────────── */
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function setLoading(v) { busy=v; sendBtn.disabled=v; }
+  function scrollBottom() { msgsEl.scrollTop = msgsEl.scrollHeight; }
+</script>
+</body>
+</html>
